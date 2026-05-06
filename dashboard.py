@@ -53,11 +53,21 @@ html, body, [data-testid="stAppViewContainer"] {
 
 @st.cache_data(ttl=3600)
 def fetch_gold_data():
-    df = yf.download('GC=F', period='2y', interval='1d',
-                     progress=False, auto_adjust=True)
-    df.columns = [c[0] if isinstance(c, tuple) else c for c in df.columns]
-    df.dropna(inplace=True)
-    return df
+    tickers = ['GC=F', 'XAUUSD=X', 'GLD']
+    for ticker in tickers:
+        try:
+            df = yf.download(ticker, period='2y', interval='1d',
+                             progress=False, auto_adjust=True)
+            if df is None or df.empty:
+                continue
+            df.columns = [c[0] if isinstance(c, tuple) else c
+                          for c in df.columns]
+            df.dropna(inplace=True)
+            if len(df) >= 30:
+                return df
+        except Exception:
+            continue
+    return None
 
 def signal_color(signal):
     return {
