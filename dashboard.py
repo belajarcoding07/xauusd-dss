@@ -188,18 +188,25 @@ def main():
         st.error("Engine error: " + str(e))
         return
 
-    try:
+try:
         ff    = FundamentalFilter()
-        macro = ff.apply_fundamental_adjustment(result['probability'])
+        macro_raw = ff.apply_fundamental_adjustment(result['probability'])
+        if macro_raw is None or 'adjusted_score' not in macro_raw:
+            raise ValueError("Invalid macro data")
+        macro = macro_raw
     except Exception as e:
         macro = {
-            'adjusted_score': result['probability'],
-            'technical_score': result['probability'],
+            'adjusted_score':   result['probability'],
+            'technical_score':  result['probability'],
             'total_adjustment': 0,
-            'macro_label': 'Fundamental data unavailable',
-            'macro_color': 'gray',
-            'dxy': {'label': 'Unavailable', 'available': False},
-            'fed': {'label': 'Unavailable', 'available': False},
+            'macro_label':      'Macro data unavailable',
+            'macro_color':      'gray',
+            'macro_stance':     'NEUTRAL',
+            'dxy': {'label': 'DXY data unavailable', 'available': False,
+                    'adjustment': 0},
+            'fed': {'label': 'Fed data unavailable', 'available': False,
+                    'adjustment': 0},
+            'event_radar': {'alert': False, 'events_found': []},
         }
 
     prob   = macro['adjusted_score']
