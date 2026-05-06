@@ -2,6 +2,9 @@ import streamlit as st
 import yfinance as yf
 import pandas as pd
 import plotly.graph_objects as go
+import sys
+import os
+sys.path.insert(0, os.path.dirname(__file__))
 from engine import XAUEngine
 from fundamental import FundamentalFilter
 from datetime import datetime
