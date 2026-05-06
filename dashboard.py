@@ -400,7 +400,71 @@ def main():
         "</div>",
         unsafe_allow_html=True,
     )
+# USER MANUAL
+    with st.expander("Panduan Cara Membaca Dashboard — Klik untuk buka"):
+        st.markdown("""
+<div style='color:#aaa;font-size:13px;line-height:1.8'>
 
+<b style='color:#e8e8e8;font-size:15px'>Cara Membaca Dashboard XAUUSD DSS</b><br><br>
+
+<b style='color:#f5a623'>1. GAUGE DAN SIGNAL</b><br>
+- <b style='color:#00d084'>BUY</b> — Konfluensi bullish. Harga kemungkinan naik. Pertimbangkan posisi beli.<br>
+- <b style='color:#ff4d4d'>SELL</b> — Konfluensi bearish. Harga kemungkinan turun. Pertimbangkan posisi jual.<br>
+- <b style='color:#f5a623'>WAIT</b> — Kondisi belum jelas. Tunggu konfirmasi lebih lanjut.<br>
+- <b style='color:#888'>NO TRADE</b> — Volatility ekstrem. Jangan trading dulu.<br><br>
+
+<b style='color:#f5a623'>2. LOGIC BREAKDOWN — 4 Pilar</b><br>
+<b>Regime (25%)</b> — Trending atau sideways. Skor tinggi = trend jelas.<br>
+<b>Volatility (30%)</b> — Pergerakan harian vs rata-rata historis. Skor tinggi = kondisi normal.<br>
+<b>Liquidity (25%)</b> — Posisi harga vs level kritis PDH/PDL/Weekly/Monthly Open.<br>
+<b>Momentum (20%)</b> — Arah dorongan harga via RSI dan volume.<br><br>
+
+<b style='color:#f5a623'>3. MACRO PANEL</b><br>
+- DXY Weakening = Dolar melemah = Bullish Gold (+10 pts)<br>
+- DXY Strengthening = Dolar menguat = Bearish Gold (-15 pts)<br>
+- Fed Dovish = Suku bunga turun = Bullish Gold (+10 pts)<br>
+- Fed Hawkish = Suku bunga naik = Bearish Gold (-15 pts)<br><br>
+
+<b style='color:#f5a623'>4. PRICE CHART</b><br>
+- Garis Biru (MA20) = Rata-rata harga 20 hari. Garis keseimbangan pasar.<br>
+- 2sd Upper/Lower = Batas normal. Harga di Upper = overbought. Harga di Lower = oversold.<br>
+- Garis Kuning (PDH/PDL) = Level tertinggi/terendah hari kemarin. Support/Resistance kunci.<br>
+- Garis Biru Muda (W.Open) = Weekly Open. Level psikologis mingguan.<br>
+- Garis Ungu (M.Open) = Monthly Open. Level psikologis bulanan.<br><br>
+
+<b style='color:#f5a623'>5. LOT SIZE CALCULATOR</b><br>
+1. Isi balance akun (USD)<br>
+2. Pilih % risiko per trade (standar: 1-2%)<br>
+3. Stop Loss otomatis dari ATR — bisa diubah manual<br>
+4. Contoh: Balance $10,000 | Risk 1% | SL 146 pts = Lot 0.01 = Max loss $100<br><br>
+
+<b style='color:#f5a623'>6. ALUR KERJA HARIAN</b><br>
+1. Buka app setelah Daily candle close (sekitar 07:00 WIB)<br>
+2. Lihat Signal — BUY / SELL / WAIT / NO TRADE<br>
+3. Baca Logic Breakdown — pahami KENAPA signal itu keluar<br>
+4. Cek Macro Panel — fundamental mendukung atau berlawanan<br>
+5. Lihat Chart — harga di dekat level penting atau tidak<br>
+6. Hitung lot di Lot Calculator<br>
+7. Eksekusi di MT4/MT5<br><br>
+
+<b style='color:#ff4d4d'>PERINGATAN PENTING</b><br>
+Sistem ini adalah alat bantu analisis, BUKAN jaminan profit. Selalu gunakan judgment dan risk management sendiri. Tidak ada sistem trading yang 100% akurat.
+
+</div>
+""", unsafe_allow_html=True)
+
+    # COPYRIGHT
+    st.markdown(
+        "<div style='text-align:center;padding:24px 0 8px;'>"
+        "<span style='color:#444;font-size:11px;letter-spacing:0.1em'>"
+        "COPYRIGHT &copy; 2026 JVD STUDIO — ALL RIGHTS RESERVED</span><br>"
+        "<span style='color:#333;font-size:10px'>"
+        "XAUUSD Hybrid Decision-Maker Engine | "
+        "For Analytical Purposes Only | Not Financial Advice"
+        "</span>"
+        "</div>",
+        unsafe_allow_html=True,
+    )
     st.markdown("<div style='height:12px'></div>", unsafe_allow_html=True)
     if st.button("Refresh Data"):
         st.rerun()
