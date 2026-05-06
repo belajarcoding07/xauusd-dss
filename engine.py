@@ -10,7 +10,7 @@ class XAUEngine:
         'liquidity':  0.25,
         'momentum':   0.20,
     }
-    ATR_HISTORICAL_AVG   = 8.0
+    ATR_HISTORICAL_AVG   = 50.0
     HIGH_RISK_MULTIPLIER = 2.0
 
     def __init__(self, df):
