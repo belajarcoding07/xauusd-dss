@@ -291,7 +291,15 @@ def main():
     col1, col2 = st.columns([1, 2])
 
     with col1:
-        st.plotly_chart(make_gauge(prob, signal), use_container_width=True)
+        st.plotly_chart(
+        make_price_chart(df, l),
+        use_container_width=True,
+        config={
+            'scrollZoom': True,
+            'displayModeBar': True,
+            'displaylogo': False,
+        }
+    )
         sc = signal_color(signal)
         st.markdown(
             "<div style='text-align:center;font-size:32px;"
