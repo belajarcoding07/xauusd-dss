@@ -363,7 +363,15 @@ def main():
         )
 
     st.markdown("#### Price Chart | 90 Days")
-    st.plotly_chart(make_price_chart(df, l), use_container_width=True)
+    st.plotly_chart(
+        make_price_chart(df, l),
+        use_container_width=True,
+        config={
+            'scrollZoom': True,
+            'displayModeBar': True,
+            'displaylogo': False,
+        }
+    )(df, l), use_container_width=True)
 
     col3, col4 = st.columns(2)
 
