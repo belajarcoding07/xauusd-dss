@@ -4,6 +4,7 @@ import pandas as pd
 import plotly.graph_objects as go
 import sys
 import os
+import time
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from engine import XAUEngine
 from fundamental import FundamentalFilter
@@ -48,13 +49,11 @@ html, body, [data-testid="stAppViewContainer"] {
 
 
 def fetch_gold_data():
-    tickers = ['GC=F', 'GC=F', 'GC=F']
-    for i, ticker in enumerate(tickers):
+    for attempt in range(3):
         try:
-            import time
-            if i > 0:
+            if attempt > 0:
                 time.sleep(3)
-            tk = yf.Ticker(ticker)
+            tk = yf.Ticker('GC=F')
             df = tk.history(period='2y', interval='1d')
             if df is None or df.empty or len(df) < 30:
                 continue
@@ -62,7 +61,7 @@ def fetch_gold_data():
             df.dropna(inplace=True)
             if float(df['Close'].iloc[-1]) < 1000:
                 continue
-            return df, ticker
+            return df, 'GC=F'
         except Exception:
             continue
     return None, None
@@ -72,10 +71,8 @@ def get_macro(prob):
     try:
         ff = FundamentalFilter()
         result = ff.apply_fundamental_adjustment(prob)
-        if result is None:
-            raise ValueError("None returned")
-        if 'adjusted_score' not in result:
-            raise ValueError("Missing key")
+        if result is None or 'adjusted_score' not in result:
+            raise ValueError("Invalid")
         return result
     except Exception:
         return {
@@ -85,32 +82,17 @@ def get_macro(prob):
             'macro_label':      'Macro data unavailable',
             'macro_color':      'gray',
             'macro_stance':     'NEUTRAL',
-            'dxy': {
-                'label': 'DXY data unavailable',
-                'available': False,
-                'adjustment': 0,
-            },
-            'fed': {
-                'label': 'Fed data unavailable',
-                'available': False,
-                'adjustment': 0,
-            },
-            'event_radar': {
-                'alert': False,
-                'events_found': [],
-            },
+            'dxy': {'label': 'DXY unavailable', 'available': False, 'adjustment': 0},
+            'fed': {'label': 'Fed unavailable', 'available': False, 'adjustment': 0},
+            'event_radar': {'alert': False, 'events_found': []},
         }
 
 
 def signal_color(signal):
-    colors = {
-        'BUY':      '#00d084',
-        'SELL':     '#ff4d4d',
-        'WAIT':     '#f5a623',
-        'NO_TRADE': '#888888',
-        'AVOID':    '#888888',
-    }
-    return colors.get(signal, '#888888')
+    return {
+        'BUY': '#00d084', 'SELL': '#ff4d4d',
+        'WAIT': '#f5a623', 'NO_TRADE': '#888888', 'AVOID': '#888888',
+    }.get(signal, '#888888')
 
 
 def make_gauge(prob, signal):
@@ -120,11 +102,8 @@ def make_gauge(prob, signal):
         value=prob,
         number={'suffix': '%', 'font': {'size': 36, 'color': color}},
         gauge={
-            'axis': {
-                'range': [0, 100],
-                'tickcolor': '#444',
-                'tickfont': {'color': '#666', 'size': 10},
-            },
+            'axis': {'range': [0, 100], 'tickcolor': '#444',
+                     'tickfont': {'color': '#666', 'size': 10}},
             'bar': {'color': color, 'thickness': 0.25},
             'bgcolor': '#1a1a1a',
             'bordercolor': '#2a2a2a',
@@ -135,30 +114,27 @@ def make_gauge(prob, signal):
             ],
             'threshold': {
                 'line': {'color': color, 'width': 3},
-                'thickness': 0.8,
-                'value': prob,
+                'thickness': 0.8, 'value': prob,
             },
         },
         domain={'x': [0, 1], 'y': [0, 1]},
     ))
     fig.update_layout(
-        paper_bgcolor='#0d0d0d',
-        plot_bgcolor='#0d0d0d',
-        margin=dict(t=20, b=10, l=20, r=20),
-        height=260,
+        paper_bgcolor='#0d0d0d', plot_bgcolor='#0d0d0d',
+        margin=dict(t=20, b=10, l=20, r=20), height=260,
         font={'color': '#888'},
     )
     return fig
 
 
 def make_price_chart(df, liq):
-    close = df['Close'].astype(float)
-    ma20  = close.rolling(20).mean()
-    std   = close.rolling(20).std()
-    u2    = ma20 + 2 * std
-    l2    = ma20 - 2 * std
-    u3    = ma20 + 3 * std
-    l3    = ma20 - 3 * std
+    close  = df['Close'].astype(float)
+    ma20   = close.rolling(20).mean()
+    std    = close.rolling(20).std()
+    u2     = ma20 + 2 * std
+    l2     = ma20 - 2 * std
+    u3     = ma20 + 3 * std
+    l3     = ma20 - 3 * std
     last90 = df.tail(90)
 
     fig = go.Figure()
@@ -172,14 +148,13 @@ def make_price_chart(df, liq):
         decreasing_line_color='#ff4d4d',
         name='Price', showlegend=False,
     ))
-    bands = [
+    for band, name, dash in [
         (u3.tail(90), '3sd Upper', 'dot'),
         (u2.tail(90), '2sd Upper', 'dash'),
-        (ma20.tail(90), 'MA20', 'solid'),
+        (ma20.tail(90), 'MA20',    'solid'),
         (l2.tail(90), '2sd Lower', 'dash'),
         (l3.tail(90), '3sd Lower', 'dot'),
-    ]
-    for band, name, dash in bands:
+    ]:
         fig.add_trace(go.Scatter(
             x=last90.index, y=band, name=name,
             line=dict(
@@ -188,33 +163,26 @@ def make_price_chart(df, liq):
             ),
             showlegend=True,
         ))
-    hlines = [
+    for name, val, col in [
         ('PDH',    liq['pdh'],          '#f5a623'),
         ('PDL',    liq['pdl'],          '#f5a623'),
         ('W.Open', liq['weekly_open'],  '#5599ff'),
         ('M.Open', liq['monthly_open'], '#aa55ff'),
-    ]
-    for name, val, col in hlines:
+    ]:
         fig.add_hline(
             y=val, line_dash='dot', line_color=col, line_width=1,
             annotation_text=" " + name + " " + str(val),
-            annotation_font_color=col,
-            annotation_font_size=10,
+            annotation_font_color=col, annotation_font_size=10,
         )
     fig.update_layout(
-        paper_bgcolor='#0d0d0d',
-        plot_bgcolor='#0d0d0d',
+        paper_bgcolor='#0d0d0d', plot_bgcolor='#0d0d0d',
         xaxis=dict(
-            gridcolor='#1a1a1a',
-            color='#555',
+            gridcolor='#1a1a1a', color='#555',
             rangeslider=dict(
-                visible=True,
-                bgcolor='#1a1a1a',
-                thickness=0.06,
+                visible=True, bgcolor='#1a1a1a', thickness=0.06,
             ),
             rangeselector=dict(
-                bgcolor='#1a1a1a',
-                activecolor='#333',
+                bgcolor='#1a1a1a', activecolor='#333',
                 font=dict(color='#888', size=10),
                 buttons=[
                     dict(count=1,  label='1M', step='month', stepmode='backward'),
@@ -224,17 +192,11 @@ def make_price_chart(df, liq):
                 ],
             ),
         ),
-        yaxis=dict(
-            gridcolor='#1a1a1a',
-            color='#555',
-            fixedrange=False,
-        ),
-        margin=dict(t=10, b=40, l=10, r=10),
-        height=480,
+        yaxis=dict(gridcolor='#1a1a1a', color='#555', fixedrange=False),
+        margin=dict(t=10, b=40, l=10, r=10), height=480,
         legend=dict(
             bgcolor='#111', bordercolor='#2a2a2a',
-            font=dict(color='#666', size=10),
-            x=0, y=1,
+            font=dict(color='#666', size=10), x=0, y=1,
         ),
     )
     return fig
@@ -278,11 +240,7 @@ def main():
     df, source = fetch_gold_data()
 
     if df is None:
-        st.error(
-            "Unable to fetch Gold data. "
-            "Market may be closed or data source unavailable. "
-            "Please try again in a few minutes."
-        )
+        st.error("Unable to fetch Gold data. Please retry in a few minutes.")
         if st.button("Retry"):
             st.rerun()
         return
@@ -307,15 +265,7 @@ def main():
     col1, col2 = st.columns([1, 2])
 
     with col1:
-        st.plotly_chart(
-        make_price_chart(df, l),
-        use_container_width=True,
-        config={
-            'scrollZoom': True,
-            'displayModeBar': True,
-            'displaylogo': False,
-        }
-    )
+        st.plotly_chart(make_gauge(prob, signal), use_container_width=True)
         sc = signal_color(signal)
         st.markdown(
             "<div style='text-align:center;font-size:32px;"
@@ -370,8 +320,8 @@ def main():
             'scrollZoom': True,
             'displayModeBar': True,
             'displaylogo': False,
-        }
-    )(df, l), use_container_width=True)
+        },
+    )
 
     col3, col4 = st.columns(2)
 
@@ -383,9 +333,8 @@ def main():
         cp  = (chg / pp) * 100
         cc  = '#00d084' if chg >= 0 else '#ff4d4d'
         cs  = '+' if chg >= 0 else ''
-
         render_metric(
-            "Gold Price",
+            "Gold Price (XAU/USD)",
             "$" + "{:,.2f}".format(lp),
             "<span style='color:" + cc + "'>"
             + cs + "{:.2f}".format(chg)
@@ -400,11 +349,13 @@ def main():
         render_metric("Volatility",
                       v['volatility_state'].replace('_', ' ').title(), "")
         render_metric("Weekly Open",
-                      "$" + str(l['weekly_open']), "Key level")
+                      "$" + "{:,.2f}".format(l['weekly_open']), "Key level")
         render_metric("Monthly Open",
-                      "$" + str(l['monthly_open']), "Key level")
-        render_metric("PDH", "$" + str(l['pdh']), "Prev Day High")
-        render_metric("PDL", "$" + str(l['pdl']), "Prev Day Low")
+                      "$" + "{:,.2f}".format(l['monthly_open']), "Key level")
+        render_metric("PDH", "$" + "{:,.2f}".format(l['pdh']),
+                      "Prev Day High")
+        render_metric("PDL", "$" + "{:,.2f}".format(l['pdl']),
+                      "Prev Day Low")
 
     with col4:
         st.markdown("#### Lot Size Calculator")
@@ -416,10 +367,9 @@ def main():
         risk_pct = st.slider("Risk per Trade (%)", 0.5, 5.0, 1.0, 0.5)
         sl_pts   = st.number_input(
             "Stop Loss (USD pts)",
-            min_value=1.0, max_value=500.0,
-            value=float(v['dynamic_sl']), step=0.5,
+            min_value=1.0, max_value=1000.0,
+            value=float(v['dynamic_sl']), step=1.0,
         )
-
         risk_usd = balance * (risk_pct / 100)
         lot_size = max(round(risk_usd / (sl_pts * 100), 4), 0.01)
         slc      = '#ff4d4d' if v['high_risk'] else '#00d084'
@@ -427,8 +377,7 @@ def main():
         render_metric(
             "Dynamic SL (1.5x ATR)",
             "<span style='color:#f5a623'>"
-            + str(v['dynamic_sl']) + " pts</span>",
-            "",
+            + str(v['dynamic_sl']) + " pts</span>", "",
         )
         render_metric(
             "Risk Amount",
@@ -439,8 +388,7 @@ def main():
             "Recommended Lot",
             "<span style='color:" + slc + "'>"
             + str(lot_size) + " lots</span>",
-            "HIGH RISK" if v['high_risk']
-            else str(sl_pts) + " pts SL",
+            "HIGH RISK" if v['high_risk'] else str(sl_pts) + " pts SL",
         )
 
     st.markdown(
