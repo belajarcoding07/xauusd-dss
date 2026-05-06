@@ -48,15 +48,20 @@ html, body, [data-testid="stAppViewContainer"] {
 
 
 def fetch_gold_data():
-    tickers = ['GC=F', 'GLD', 'IAU']
-    for ticker in tickers:
+    tickers = ['GC=F', 'GC=F', 'GC=F']
+    for i, ticker in enumerate(tickers):
         try:
+            import time
+            if i > 0:
+                time.sleep(3)
             tk = yf.Ticker(ticker)
             df = tk.history(period='2y', interval='1d')
             if df is None or df.empty or len(df) < 30:
                 continue
             df = df[['Open', 'High', 'Low', 'Close', 'Volume']]
             df.dropna(inplace=True)
+            if float(df['Close'].iloc[-1]) < 1000:
+                continue
             return df, ticker
         except Exception:
             continue
