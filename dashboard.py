@@ -170,14 +170,12 @@ def make_price_chart(df, liq):
         close=last90['Close'].astype(float),
         increasing_line_color='#00d084',
         decreasing_line_color='#ff4d4d',
-        name='Price',
-        showlegend=False,
+        name='Price', showlegend=False,
     ))
-
     bands = [
         (u3.tail(90), '3sd Upper', 'dot'),
         (u2.tail(90), '2sd Upper', 'dash'),
-        (ma20.tail(90), 'MA20',    'solid'),
+        (ma20.tail(90), 'MA20', 'solid'),
         (l2.tail(90), '2sd Lower', 'dash'),
         (l3.tail(90), '3sd Lower', 'dot'),
     ]
@@ -190,7 +188,6 @@ def make_price_chart(df, liq):
             ),
             showlegend=True,
         ))
-
     hlines = [
         ('PDH',    liq['pdh'],          '#f5a623'),
         ('PDL',    liq['pdl'],          '#f5a623'),
@@ -204,17 +201,36 @@ def make_price_chart(df, liq):
             annotation_font_color=col,
             annotation_font_size=10,
         )
-
     fig.update_layout(
         paper_bgcolor='#0d0d0d',
         plot_bgcolor='#0d0d0d',
         xaxis=dict(
-            gridcolor='#1a1a1a', color='#555',
-            rangeslider_visible=False,
+            gridcolor='#1a1a1a',
+            color='#555',
+            rangeslider=dict(
+                visible=True,
+                bgcolor='#1a1a1a',
+                thickness=0.06,
+            ),
+            rangeselector=dict(
+                bgcolor='#1a1a1a',
+                activecolor='#333',
+                font=dict(color='#888', size=10),
+                buttons=[
+                    dict(count=1,  label='1M', step='month', stepmode='backward'),
+                    dict(count=3,  label='3M', step='month', stepmode='backward'),
+                    dict(count=6,  label='6M', step='month', stepmode='backward'),
+                    dict(step='all', label='ALL'),
+                ],
+            ),
         ),
-        yaxis=dict(gridcolor='#1a1a1a', color='#555'),
-        margin=dict(t=10, b=10, l=10, r=10),
-        height=400,
+        yaxis=dict(
+            gridcolor='#1a1a1a',
+            color='#555',
+            fixedrange=False,
+        ),
+        margin=dict(t=10, b=40, l=10, r=10),
+        height=480,
         legend=dict(
             bgcolor='#111', bordercolor='#2a2a2a',
             font=dict(color='#666', size=10),
