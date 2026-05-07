@@ -735,7 +735,7 @@ if not hist.empty:
             xaxis2=dict(**ax, tickfont=dict(color="#5A6480", size=7), showticklabels=False),
             yaxis2=dict(**ax, tickfont=dict(color="#5A6480", size=7), side="right",
                         fixedrange=True),
-            dragmode="pan",
+            dragmode="zoom",
             hovermode="x unified",
             hoverlabel=dict(bgcolor="#12161F", bordercolor="#F5A623",
                             font=dict(color="#FFFFFF", size=10, family="JetBrains Mono")),
@@ -765,17 +765,18 @@ if not hist.empty:
     fig_n = make_chart(hist, current_price, pdh, pdl, height=420)
     st.plotly_chart(fig_n, use_container_width=True, config={
         "displayModeBar": True,
-        "modeBarButtonsToRemove": ["toImage", "sendDataToCloud", "select2d", "lasso2d", "autoScale2d"],
+        "modeBarButtonsToRemove": ["toImage", "sendDataToCloud", "select2d", "lasso2d"],
         "displaylogo": False,
         "scrollZoom": True,
         "responsive": True,
-        "modeBarButtonsToAdd": [],
     })
 
     # Nav bar bawah chart
     tc = len(hist)
     st.markdown(
         '<div class="cpbar" style="margin-top:-2px;">'
+
+        # Row 1: Timeline presets
         '<div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:6px;margin-bottom:9px;">'
         '<span style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:var(--txt3);">🕹 Timeline</span>'
         '<div style="display:flex;gap:4px;flex-wrap:wrap;">'
@@ -784,25 +785,40 @@ if not hist.empty:
         '<button class="cnav" onclick="cZ(60)">3M</button>'
         '<button class="cnav" onclick="cZ(120)">6M</button>'
         '<button class="cnav" onclick="cZ(0)">MAX</button>'
-        '<button class="cnav cnav-t" onclick="cH()">🏠 Home</button>'
+        '<button class="cnav cnav-t" onclick="cH()">🏠 Reset</button>'
         '</div>'
         '</div>'
-        '<div style="display:flex;align-items:center;gap:8px;">'
-        '<span style="font-size:9px;color:var(--txt3);">◀</span>'
+
+        # Row 2: Slider
+        '<div style="display:flex;align-items:center;gap:8px;margin-bottom:9px;">'
+        '<span style="font-size:9px;color:var(--txt3);">◀ Lama</span>'
         '<input type="range" class="csl" id="csl" min="0" max="100" value="100" step="1" oninput="cS(this.value)">'
-        '<span style="font-size:9px;color:var(--txt3);">▶</span>'
+        '<span style="font-size:9px;color:var(--txt3);">Baru ▶</span>'
         '</div>'
-        '<div style="display:flex;align-items:center;justify-content:space-between;margin-top:8px;flex-wrap:wrap;gap:4px;">'
-        '<div style="display:flex;gap:4px;">'
-        '<button class="cnav" onclick="cZI()">🔍＋</button>'
-        '<button class="cnav" onclick="cZO()">🔍－</button>'
+
+        # Row 3: Zoom controls + mode toggle
+        '<div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:6px;">'
+        '<div style="display:flex;gap:4px;flex-wrap:wrap;align-items:center;">'
+        '<span style="font-size:9px;color:var(--txt3);margin-right:2px;">Zoom:</span>'
+        '<button class="cnav" onclick="axZoom(0.5)" title="Zoom In — perbesar chart">🔍 ＋ In</button>'
+        '<button class="cnav" onclick="axZoom(2.0)" title="Zoom Out — perkecil chart">🔍 － Out</button>'
+        '<button class="cnav" onclick="cZI()" title="Lebih sedikit candle">C ＋</button>'
+        '<button class="cnav" onclick="cZO()" title="Lebih banyak candle">C －</button>'
+        '<span style="font-size:9px;color:var(--txt3);margin-left:6px;">Mode:</span>'
+        '<button class="cnav" id="modeBtn" onclick="toggleMode()" title="Toggle pan / zoom mode">🖱 Pan</button>'
         '</div>'
-        '<span id="cpos" style="font-family:JetBrains Mono,monospace;font-size:9px;color:var(--txt3);">← geser · scroll/pinch zoom · drag pan →</span>'
+        '<span id="cpos" style="font-family:JetBrains Mono,monospace;font-size:9px;color:var(--txt3);">scroll=zoom · drag=zoom</span>'
         '</div>'
+
         '</div>'
+
         '<script>(function(){'
-        'var T=' + str(tc) + ',V=60,P=100;'
+        'var T=' + str(tc) + ',V=60,P=100,MODE="zoom";'
+
+        # Get plotly div
         'function gd(){var d=document.querySelectorAll(".js-plotly-plot");return d.length?d[0]:null;}'
+
+        # Apply x range from slider
         'function ar(){'
         '  var d=gd();if(!d)return;'
         '  var ms=Math.max(0,T-V),si=Math.round(P/100*ms),ei=si+V;'
@@ -810,32 +826,83 @@ if not hist.empty:
         '  try{'
         '    var x=d.data[0].x;if(!x||!x.length)return;'
         '    var x0=x[si]||x[0],x1=x[Math.min(ei,x.length-1)];'
-        '    Plotly.relayout(d,{"xaxis.range":[x0,x1]});'
+        '    Plotly.relayout(d,{"xaxis.range":[x0,x1],"xaxis.autorange":false});'
         '    var lb=document.getElementById("cpos");'
         '    if(lb)lb.innerText="C"+(si+1)+"-"+ei+"/"+T;'
         '    var sl=document.getElementById("csl");'
         '    if(sl)sl.style.background="linear-gradient(to right,#F5A623 "+P+"%,rgba(255,255,255,0.07) "+P+"%)";'
         '  }catch(e){}'
         '}'
+
+        # Zoom X axis by factor (0.5 = zoom in, 2.0 = zoom out)
+        'function axZoom(factor){'
+        '  var d=gd();if(!d)return;'
+        '  try{'
+        '    var la=d.layout;'
+        '    var xr=la.xaxis&&la.xaxis.range?la.xaxis.range:null;'
+        '    var yr=la.yaxis&&la.yaxis.range?la.yaxis.range:null;'
+        '    if(xr){'
+        # For date axis: convert to ms, scale around center
+        '      var x0=new Date(xr[0]).getTime(),x1=new Date(xr[1]).getTime();'
+        '      var xc=(x0+x1)/2,xhalf=(x1-x0)/2*factor;'
+        '      var nx0=new Date(xc-xhalf).toISOString(),nx1=new Date(xc+xhalf).toISOString();'
+        '      Plotly.relayout(d,{"xaxis.range":[nx0,nx1],"xaxis.autorange":false,'
+        '                         "yaxis.autorange":true});'  # auto Y when zooming X
+        '    } else {'
+        '      Plotly.relayout(d,{"xaxis.autorange":true,"yaxis.autorange":true});'
+        '    }'
+        '    var lb=document.getElementById("cpos");'
+        '    if(lb)lb.innerText=factor<1?"Zoomed In":"Zoomed Out";'
+        '  }catch(e){console.log(e);}'
+        '}'
+
+        # Toggle drag mode
+        'function toggleMode(){'
+        '  var d=gd();if(!d)return;'
+        '  MODE=MODE==="zoom"?"pan":"zoom";'
+        '  try{Plotly.relayout(d,{dragmode:MODE});}catch(e){}'
+        '  var btn=document.getElementById("modeBtn");'
+        '  if(btn){btn.innerText=MODE==="zoom"?"🔍 Zoom":"🖱 Pan";'
+        '    btn.style.background=MODE==="zoom"?"rgba(245,166,35,0.15)":"";'
+        '    btn.style.borderColor=MODE==="zoom"?"rgba(245,166,35,0.4)":"";'
+        '    btn.style.color=MODE==="zoom"?"#F5A623":"";'
+        '  }'
+        '}'
+
         'window.cS=function(v){P=parseFloat(v);ar();};'
         'window.cZ=function(n){if(n===0){V=T;P=0;}else{V=Math.min(n,T);P=100;}ar();};'
         'window.cZI=function(){V=Math.max(5,Math.round(V*0.6));ar();};'
         'window.cZO=function(){V=Math.min(T,Math.round(V*1.6));ar();};'
+        'window.axZoom=axZoom;'
+        'window.toggleMode=toggleMode;'
         'window.cH=function(){'
         '  V=60;P=100;'
         '  var sl=document.getElementById("csl");if(sl)sl.value=100;'
         '  var d=gd();if(!d)return;'
-        '  try{Plotly.relayout(d,{"xaxis.autorange":true,"yaxis.autorange":true});}catch(e){}'
+        '  try{Plotly.relayout(d,{"xaxis.autorange":true,"yaxis.autorange":true,"dragmode":"zoom"});}catch(e){}'
+        '  MODE="zoom";'
+        '  var btn=document.getElementById("modeBtn");'
+        '  if(btn){btn.innerText="🔍 Zoom";btn.style.background="rgba(245,166,35,0.15)";btn.style.borderColor="rgba(245,166,35,0.4)";btn.style.color="#F5A623";}'
         '  ar();'
         '};'
-        'function ini(){var d=gd();if(!d||!d.data||!d.data[0]){setTimeout(ini,400);return;}ar();}'
-        'setTimeout(ini,800);'
+
+        'function ini(){'
+        '  var d=gd();if(!d||!d.data||!d.data[0]){setTimeout(ini,400);return;}'
+        # Set initial zoom mode button state
+        '  var btn=document.getElementById("modeBtn");'
+        '  if(btn){btn.innerText="🔍 Zoom";btn.style.background="rgba(245,166,35,0.15)";btn.style.borderColor="rgba(245,166,35,0.4)";btn.style.color="#F5A623";}'
+        '  ar();'
+        '}'
+        'setTimeout(ini,900);'
         '})();</script>',
         unsafe_allow_html=True
     )
     st.markdown(
         '<div style="text-align:center;padding:4px 0;font-size:10px;color:var(--txt3);">'
-        '💡 Scroll/pinch = zoom in-out &nbsp;·&nbsp; Drag chart = geser &nbsp;·&nbsp; 🏠 Home = reset tampilan'
+        '💡 <b style="color:var(--gold);">🔍 ＋ In</b> = perbesar chart &nbsp;·&nbsp; '
+        '<b style="color:var(--gold);">🔍 － Out</b> = perkecil &nbsp;·&nbsp; '
+        '<b>🏠 Reset</b> = kembali normal &nbsp;·&nbsp; '
+        '<b>Mode</b> = toggle zoom/pan'
         '</div>',
         unsafe_allow_html=True
     )
