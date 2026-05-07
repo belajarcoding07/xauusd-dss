@@ -399,88 +399,95 @@ hr {
     margin-top: 32px;
 }
 
-/* ── FLOATING ACTION BUTTON — selalu terlihat saat scroll ── */
+/* ── FLOATING ACTION BUTTON — top-left, modern, tidak nabrak footer ── */
 .jvd-fab-wrapper {
     position: fixed;
-    bottom: 24px;
-    right: 24px;
+    top: 56px;
+    left: 12px;
     z-index: 99999;
     display: flex;
     flex-direction: column;
-    align-items: flex-end;
-    gap: 10px;
+    align-items: flex-start;
+    gap: 6px;
 }
+/* Main pill container */
+.jvd-fab-pill {
+    display: flex;
+    align-items: center;
+    gap: 0;
+    background: rgba(10,12,16,0.96);
+    border: 1px solid rgba(245,166,35,0.35);
+    border-radius: 40px;
+    backdrop-filter: blur(16px);
+    box-shadow: 0 4px 24px rgba(0,0,0,0.5), 0 0 0 1px rgba(245,166,35,0.1);
+    overflow: hidden;
+}
+/* Refresh half */
 .jvd-fab {
     display: flex;
     align-items: center;
-    gap: 10px;
+    gap: 7px;
     background: linear-gradient(135deg, #F5A623, #E8941A);
     color: #0A0C10 !important;
     border: none;
-    border-radius: 50px;
-    padding: 14px 22px;
+    border-radius: 40px 0 0 40px;
+    padding: 10px 16px 10px 14px;
     font-family: 'Space Grotesk', sans-serif;
-    font-size: 14px;
+    font-size: 13px;
     font-weight: 700;
     cursor: pointer;
-    box-shadow: 0 4px 20px rgba(245,166,35,0.5), 0 0 40px rgba(245,166,35,0.15);
     transition: all 0.2s ease;
-    text-decoration: none;
-    letter-spacing: 0.01em;
     white-space: nowrap;
+    letter-spacing: 0.01em;
 }
 .jvd-fab:hover {
-    transform: translateY(-2px) scale(1.03);
-    box-shadow: 0 8px 30px rgba(245,166,35,0.6), 0 0 60px rgba(245,166,35,0.2);
     background: linear-gradient(135deg, #FFB940, #F5A623);
+    padding-right: 18px;
 }
-.jvd-fab:active {
-    transform: translateY(0) scale(0.98);
+.jvd-fab:active { opacity: 0.85; transform: scale(0.97); }
+/* Divider */
+.jvd-fab-div {
+    width: 1px;
+    height: 32px;
+    background: rgba(245,166,35,0.25);
+    flex-shrink: 0;
 }
+/* Pause half */
 .jvd-fab-pause {
     display: flex;
     align-items: center;
-    gap: 8px;
-    background: rgba(10,12,16,0.92);
+    gap: 6px;
+    background: transparent;
     color: #8B93A5 !important;
-    border: 1px solid rgba(255,255,255,0.1);
-    border-radius: 50px;
-    padding: 8px 16px;
+    border: none;
+    border-radius: 0 40px 40px 0;
+    padding: 10px 14px 10px 12px;
     font-family: 'Space Grotesk', sans-serif;
     font-size: 12px;
     font-weight: 600;
     cursor: pointer;
-    backdrop-filter: blur(12px);
-    box-shadow: 0 2px 12px rgba(0,0,0,0.4);
     transition: all 0.2s ease;
     white-space: nowrap;
 }
-.jvd-fab-pause:hover {
-    border-color: rgba(245,166,35,0.4);
-    color: #F5A623 !important;
-}
+.jvd-fab-pause:hover { color: #F5A623 !important; background: rgba(245,166,35,0.08); }
+/* Countdown chip below pill */
 .jvd-fab-status {
-    background: rgba(10,12,16,0.88);
-    border: 1px solid rgba(255,255,255,0.07);
-    border-radius: 50px;
-    padding: 6px 14px;
+    background: rgba(10,12,16,0.85);
+    border: 1px solid rgba(255,255,255,0.06);
+    border-radius: 20px;
+    padding: 4px 12px;
     font-family: 'JetBrains Mono', monospace;
-    font-size: 11px;
+    font-size: 10px;
     color: #525B6B;
     backdrop-filter: blur(12px);
-    text-align: right;
+    margin-left: 8px;
 }
-.fab-spin {
-    animation: fabspin 1s linear infinite;
-}
-@keyframes fabspin {
-    from { transform: rotate(0deg); }
-    to { transform: rotate(360deg); }
-}
-/* Mobile adjustment */
+.fab-spin { animation: fabspin 0.8s linear infinite; }
+@keyframes fabspin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
 @media (max-width: 768px) {
-    .jvd-fab-wrapper { bottom: 16px; right: 12px; }
-    .jvd-fab { padding: 12px 18px; font-size: 13px; }
+    .jvd-fab-wrapper { top: 52px; left: 8px; }
+    .jvd-fab { font-size: 12px; padding: 9px 13px 9px 11px; }
+    .jvd-fab-pause { font-size: 11px; padding: 9px 11px; }
 }
 </style>
 """, unsafe_allow_html=True)
@@ -731,29 +738,31 @@ auto_color_fab = "#525B6B" if st.session_state.auto_refresh else "#00E396"
 
 fab_html = (
     '<div class="jvd-fab-wrapper">'
-    '<div class="jvd-fab-status" id="fab-status-bar">Live price · auto 15s</div>'
-    '<form action="" method="get" style="margin:0">'
-    '<button type="button" class="jvd-fab-pause" '
-    'onclick="window.location.href=window.location.pathname + \'?toggle_auto=1\'">'
-    '<span style="color:' + auto_color_fab + '">' + auto_icon + '</span>'
-    ' ' + auto_text +
-    '</button>'
-    '</form>'
+    '<div class="jvd-fab-pill">'
     '<button class="jvd-fab" onclick="'
     'this.querySelector(\'.fab-icon\').classList.add(\'fab-spin\');'
-    'setTimeout(function(){window.location.reload(true);},100);">'
-    '<span class="fab-icon" style="font-size:16px">🔄</span>'
-    'Refresh Now'
+    'setTimeout(function(){window.location.reload(true);},120);">'
+    '<span class="fab-icon">🔄</span>'
+    'Refresh'
+    '</button>'
+    '<div class="jvd-fab-div"></div>'
+    '<button type="button" class="jvd-fab-pause" '
+    'onclick="window.location.href=window.location.pathname+\'?toggle_auto=1\'">'
+    '<span style="color:' + auto_color_fab + ';font-size:13px">' + auto_icon + '</span>'
+    + auto_text +
     '</button>'
     '</div>'
+    '<div class="jvd-fab-status" id="fab-status-bar">live · 15s auto</div>'
+    '</div>'
     '<script>'
-    'var fabSecs=15;'
-    'var fabEl=document.getElementById("fab-status-bar");'
-    'var fabIv=setInterval(function(){'
-    '  fabSecs--;'
-    '  if(fabEl) fabEl.innerText="Live price \u00b7 refresh in "+fabSecs+"s";'
-    '  if(fabSecs<=0){clearInterval(fabIv);if(fabEl)fabEl.innerText="Refreshing...";}'
+    '(function(){'
+    'var s=15;'
+    'var el=document.getElementById("fab-status-bar");'
+    'setInterval(function(){'
+    '  s--;if(s<0)s=15;'
+    '  if(el) el.innerText=s>0?"live \u00b7 "+s+"s":"refreshing...";'
     '},1000);'
+    '})();'
     '</script>'
 )
 st.markdown(fab_html, unsafe_allow_html=True)
@@ -1019,15 +1028,18 @@ if not hist.empty:
         annotation_position="right",
         annotation_font_color="#F5A623", row=1, col=1)
 
-    # Volume
+    # Volume — pakai rgba() bukan hex+alpha agar kompatibel semua versi Plotly
     vol_colors = [
-        "#00E39666" if c >= o else "#FF456066"
+        "rgba(0,227,150,0.4)" if float(c) >= float(o) else "rgba(255,69,96,0.4)"
         for c, o in zip(hist["Close"], hist["Open"])
     ]
+    if len(vol_colors) == 0:
+        vol_colors = ["rgba(0,227,150,0.4)"]
     fig.add_trace(go.Bar(
-        x=hist.index, y=hist["Volume"],
+        x=hist.index,
+        y=hist["Volume"],
         name="Volume",
-        marker_color=vol_colors,
+        marker=dict(color=vol_colors, line=dict(width=0)),
         showlegend=False,
     ), row=2, col=1)
 
